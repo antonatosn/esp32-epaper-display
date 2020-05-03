@@ -19,7 +19,7 @@
 static const char *EPD_TAG = "EPD";
 
 // Maps the PNG palette to EPD's values
-uint8_t PIX_MAPPING[4] = {BLACK, WHITE, RED, BLACK};
+uint8_t PIX_MAPPING[2] = {BLACK, WHITE};
 
 void EPD_initialize()
 {
@@ -104,9 +104,9 @@ int EPD_7in5__init()
   EPD_SendCommand(0x4, NULL, 0);            //POWER_ON
   EPD_WaitUntilIdle();
 
-  EPD_SendCommand(0x00, "0x1F", 1);                 //PANNEL SETTING
+  //EPD_SendCommand(0x00, "0x1F", 1);                 //PANNEL SETTING
                                                     //KW-3f   KWR-2F	BWROTP 0f	BWOTP 1f
-  
+  EPD_SendCommand(0x00, NULL, 0);
   //EPD_SendCommand(0x30, "\x3C", 1);             //PLL_CONTROL
   //EPD_SendCommand(0x41, "\x00", 1);             //TEMPERATURE_CALIBRATION
   //EPD_SendCommand(0x50, "\x77", 1);             //VCOM_AND_DATA_INTERVAL_SETTING
@@ -161,6 +161,7 @@ void EPD_loadImage(const uint8_t *image, const unsigned int width, const unsigne
     uint8_t pix_7 = PIX_MAPPING[(image[i] & (0x01 << 1)) >> 1];
     uint8_t pix_8 = PIX_MAPPING[(image[i] & (0x03 << 0)) >> 0];
 
+    
     buffer[buffer_pos++] = pix_1 << 4 | pix_2;
     buffer[buffer_pos++] = pix_3 << 4 | pix_4;
     buffer[buffer_pos++] = pix_5 << 4 | pix_6;
