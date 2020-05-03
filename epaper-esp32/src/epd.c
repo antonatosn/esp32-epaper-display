@@ -100,21 +100,22 @@ int EPD_7in5__init()
   //EPD_SendCommand(0x01, "\x37\x00", 2);     //POWER_SETTING
   //EPD_SendCommand(0x00, "\xCF\x08", 2);     //PANEL_SETTING
   //EPD_SendCommand(0x06, "\xC7\xCC\x28", 3); //BOOSTER_SOFT_START
-  EPD_SendCommand(0x01, "\x07\x07\x3f\x3f", 2);
+  EPD_SendCommand(0x01, "\x07\x07\x3f\x3f", 4);
   EPD_SendCommand(0x4, NULL, 0);            //POWER_ON
   EPD_WaitUntilIdle();
 
-  EPD_SendCommand(0x00, "0x1F", 0);                 //PANNEL SETTING
+  EPD_SendCommand(0x00, "0x1F", 1);                 //PANNEL SETTING
                                                     //KW-3f   KWR-2F	BWROTP 0f	BWOTP 1f
   
   //EPD_SendCommand(0x30, "\x3C", 1);             //PLL_CONTROL
   //EPD_SendCommand(0x41, "\x00", 1);             //TEMPERATURE_CALIBRATION
   //EPD_SendCommand(0x50, "\x77", 1);             //VCOM_AND_DATA_INTERVAL_SETTING
+  EPD_SendCommand(0x61, "\x03\x20\x01\xE0", 4);
+  EPD_SendCommand(0x15, "\x00", 1);
   EPD_SendCommand(0x50, "\x10\x07", 2);
   EPD_SendCommand(0x60, "\x22", 1);             //TCON_SETTING
-  EPD_SendCommand(0x15, "\x00", 1);
   //EPD_SendCommand(0x61, "\x02\x80\x01\x80", 4); //TCON_RESOLUTION
-  EPD_SendCommand(0x61, "\x03\x20\x01\xE0", 4);
+  
   //EPD_SendCommand(0x82, "\x1E", 1);             //VCM_DC_SETTING: decide by LUT file
   //EPD_SendCommand(0xE5, "\x03", 1);             //FLASH MODE
 
@@ -144,6 +145,8 @@ void EPD_loadImage(const uint8_t *image, const unsigned int width, const unsigne
 {
   char buffer[BUFFER_SIZE];
   int buffer_pos = 0;
+
+  EPD_SendCommand(0x13, NULL, 0);
 
   // 2-bit image, each byte contains 4 pixels
   for (uint32_t i = 0; i < width * height / 8; i++)
