@@ -13,8 +13,8 @@
 
 #define BUFFER_SIZE 64
 
-#define DISPLAY_WIDTH 640
-#define DISPLAY_HEIGHT 384
+#define DISPLAY_WIDTH 800
+#define DISPLAY_HEIGHT 480
 
 static const char *EPD_TAG = "EPD";
 
@@ -97,19 +97,26 @@ int EPD_7in5__init()
   gpio_set_level(PIN_SPI_RST_NUM, 1);
   vTaskDelay(200 / portTICK_PERIOD_MS);
 
-  EPD_SendCommand(0x01, "\x37\x00", 2);     //POWER_SETTING
-  EPD_SendCommand(0x00, "\xCF\x08", 2);     //PANEL_SETTING
-  EPD_SendCommand(0x06, "\xC7\xCC\x28", 3); //BOOSTER_SOFT_START
+  //EPD_SendCommand(0x01, "\x37\x00", 2);     //POWER_SETTING
+  //EPD_SendCommand(0x00, "\xCF\x08", 2);     //PANEL_SETTING
+  //EPD_SendCommand(0x06, "\xC7\xCC\x28", 3); //BOOSTER_SOFT_START
+  EPD_SendCommand(0x01, "\x07\x07\x3f\x3f", 2);
   EPD_SendCommand(0x4, NULL, 0);            //POWER_ON
   EPD_WaitUntilIdle();
 
-  EPD_SendCommand(0x30, "\x3C", 1);             //PLL_CONTROL
-  EPD_SendCommand(0x41, "\x00", 1);             //TEMPERATURE_CALIBRATION
-  EPD_SendCommand(0x50, "\x77", 1);             //VCOM_AND_DATA_INTERVAL_SETTING
+  EPD_SendCommand(0x00, "0x1F", 0);                 //PANNEL SETTING
+                                                    //KW-3f   KWR-2F	BWROTP 0f	BWOTP 1f
+  
+  //EPD_SendCommand(0x30, "\x3C", 1);             //PLL_CONTROL
+  //EPD_SendCommand(0x41, "\x00", 1);             //TEMPERATURE_CALIBRATION
+  //EPD_SendCommand(0x50, "\x77", 1);             //VCOM_AND_DATA_INTERVAL_SETTING
+  EPD_SendCommand(0x50, "\x10\x07", 2);
   EPD_SendCommand(0x60, "\x22", 1);             //TCON_SETTING
-  EPD_SendCommand(0x61, "\x02\x80\x01\x80", 4); //TCON_RESOLUTION
-  EPD_SendCommand(0x82, "\x1E", 1);             //VCM_DC_SETTING: decide by LUT file
-  EPD_SendCommand(0xE5, "\x03", 1);             //FLASH MODE
+  EPD_SendCommand(0x15, "\x00", 1);
+  //EPD_SendCommand(0x61, "\x02\x80\x01\x80", 4); //TCON_RESOLUTION
+  EPD_SendCommand(0x61, "\x03\x20\x01\xE0", 4);
+  //EPD_SendCommand(0x82, "\x1E", 1);             //VCM_DC_SETTING: decide by LUT file
+  //EPD_SendCommand(0xE5, "\x03", 1);             //FLASH MODE
 
   EPD_SendCommand(0x10, NULL, 0); //DATA_START_TRANSMISSION_1
   vTaskDelay(2 / portTICK_PERIOD_MS);
@@ -139,18 +146,24 @@ void EPD_loadImage(const uint8_t *image, const unsigned int width, const unsigne
   int buffer_pos = 0;
 
   // 2-bit image, each byte contains 4 pixels
-  for (uint32_t i = 0; i < width * height / 4; i++)
+  for (uint32_t i = 0; i < width * height / 8; i++)
   {
     // each byte = 2 pixels
-    uint8_t pix_1 = PIX_MAPPING[(image[i] & (0x03 << 6)) >> 6];
-    uint8_t pix_2 = PIX_MAPPING[(image[i] & (0x03 << 4)) >> 4];
-    uint8_t pix_3 = PIX_MAPPING[(image[i] & (0x03 << 2)) >> 2];
-    uint8_t pix_4 = PIX_MAPPING[(image[i] & (0x03 << 0)) >> 0];
+    uint8_t pix_1 = PIX_MAPPING[(image[i] & (0x01 << 7)) >> 7];
+    uint8_t pix_2 = PIX_MAPPING[(image[i] & (0x01 << 6)) >> 6];
+    uint8_t pix_3 = PIX_MAPPING[(image[i] & (0x01 << 5)) >> 5];
+    uint8_t pix_4 = PIX_MAPPING[(image[i] & (0x01 << 4)) >> 4];
+    uint8_t pix_5 = PIX_MAPPING[(image[i] & (0x01 << 3)) >> 3];
+    uint8_t pix_6 = PIX_MAPPING[(image[i] & (0x01 << 2)) >> 2];
+    uint8_t pix_7 = PIX_MAPPING[(image[i] & (0x01 << 1)) >> 1];
+    uint8_t pix_8 = PIX_MAPPING[(image[i] & (0x03 << 0)) >> 0];
 
     buffer[buffer_pos++] = pix_1 << 4 | pix_2;
     buffer[buffer_pos++] = pix_3 << 4 | pix_4;
-
-    if (buffer_pos == BUFFER_SIZE || i == width * height / 4)
+    buffer[buffer_pos++] = pix_5 << 4 | pix_6;
+    buffer[buffer_pos++] = pix_7 << 4 | pix_8;
+    
+    if (buffer_pos == BUFFER_SIZE || i == width * height / 8)
     {
       EPD_SendData(buffer, buffer_pos);
       buffer_pos = 0;
@@ -175,10 +188,12 @@ esp_err_t EPD_load_image(const char *png, const int png_size)
   unsigned int width = 0;
   unsigned int height = 0;
   lodepng_state_init(&state);
-  state.info_raw.colortype = LCT_PALETTE;
-  state.info_raw.bitdepth = 2U;
+  state.info_raw.colortype = LCT_GREY;
+  state.info_raw.bitdepth = 1U;
   state.decoder.color_convert = 0;
+
   int error = lodepng_decode(&image, &width, &height, &state, (unsigned char *)png, png_size);
+  
   if (error != 0)
   {
     free(image);
